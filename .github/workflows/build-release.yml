@@ -1,0 +1,77 @@
+name: Build SAFE-T release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-main
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: ""
+          python-version: "3.12"
+          miniconda-version: "latest"
+          channels: conda-forge
+
+      - name: Create build virtual environment
+        shell: powershell
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+          .\.venv\Scripts\python.exe -m pip install -r requirements_build.txt
+
+      - name: Install VLC and FFmpeg
+        shell: powershell
+        run: |
+          choco install --no-progress -y vlc ffmpeg
+
+      - name: Create MFA environment
+        shell: powershell
+        run: |
+          conda create -y -n mfa_env1 -c conda-forge montreal-forced-aligner
+          conda install -y -n base -c conda-forge conda-pack
+
+      - name: Build standalone ZIP
+        shell: cmd
+        env:
+          CI: "true"
+        run: call build_exe.bat -Zip
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SAFE-T-${{ github.sha }}
+          path: dist/SAFE-T.zip
+          if-no-files-found: error
+
+      - name: Create GitHub release asset
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "build-${{ github.sha }}"
+          $title = "SAFE-T build $($env:GITHUB_SHA.Substring(0, 7))"
+          gh release create $tag dist/SAFE-T.zip `
+            --repo "${{ github.repository }}" `
+            --target "${{ github.sha }}" `
+            --title $title `
+            --notes "Automated standalone build for commit ${{ github.sha }}" `
+            --prerelease

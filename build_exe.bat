@@ -5,9 +5,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0packaging\build_bundle
 if errorlevel 1 (
     echo.
     echo Build failed. See error message above.
-    pause
+    if not defined CI pause
     exit /b 1
 )
 echo.
 echo Build succeeded! Output is in dist\SAFE-T (and dist\SAFE-T.zip)
-pause
+if not defined CI pause
