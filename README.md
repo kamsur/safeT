@@ -138,6 +138,10 @@ powershell -ExecutionPolicy Bypass -File packaging\build_bundle.ps1 -Zip -Instal
 
 Do NOT cancel the build process when intermediate failures and warnings may occur or if no progress is seen for a long time. The build takes considerable time to complete as it downloads all the required dependencies.
 
+### Automated Builds
+
+Pushing to `main` or starting **Build SAFE-T release** manually from the GitHub Actions **Run workflow** page runs `build_exe.bat -Zip` on a Windows runner. The resulting `dist/SAFE-T.zip` is uploaded as a workflow artifact and also published as a prerelease asset on a commit-specific GitHub release.
+
 ### Build Script Arguments
 
 Any argument supported by `packaging\build_bundle.ps1` can also be passed directly to `build_exe.bat` (note that `build_exe.bat` passes `-Zip` by default). When a step is skipped, the build script verifies up front that the skipped item already exists in `dist/SAFE-T/` from a previous build, preserves it across the PyInstaller rebuild, and verifies full bundle completeness before packaging.
